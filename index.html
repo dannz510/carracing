@@ -1,0 +1,778 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Enhanced Racing Game</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap');
+
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background-color: #2c3e50; /* Dark blue-gray */
+            margin: 0;
+            font-family: 'Inter', sans-serif;
+            overflow: hidden; /* Prevent scrolling */
+            color: #ecf0f1; /* Light gray text */
+        }
+
+        .game-container {
+            position: relative;
+            background-color: #34495e; /* Slightly lighter blue-gray */
+            border-radius: 15px;
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.4);
+            padding: 20px;
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            border: 2px solid #2980b9; /* Blue border */
+        }
+
+        h1 {
+            color: #f39c12; /* Orange for title */
+            margin-bottom: 20px;
+            font-size: 2.5em;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        canvas {
+            background-color: #607d8b; /* Road background */
+            display: block;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.5);
+            border: 3px solid #7f8c8d; /* Road edge color */
+        }
+
+        .game-info {
+            display: flex;
+            justify-content: space-around;
+            width: 100%;
+            margin-bottom: 15px;
+            font-size: 1.2em;
+            color: #ecf0f1;
+            flex-wrap: wrap; /* Allow wrapping on small screens */
+            gap: 10px;
+        }
+
+        .game-info > div {
+            padding: 5px 10px;
+            background-color: rgba(0, 0, 0, 0.3);
+            border-radius: 5px;
+        }
+
+        .instructions {
+            margin-top: 15px;
+            font-size: 0.9em;
+            color: #bdc3c7;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        button {
+            padding: 12px 25px;
+            font-size: 1.2em;
+            font-weight: bold;
+            color: white;
+            background: linear-gradient(145deg, #2ecc71, #27ae60); /* Green gradient */
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            outline: none;
+            box-shadow: 0 5px 10px rgba(0, 0, 0, 0.3);
+            transition: all 0.2s ease-in-out;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        button:hover {
+            background: linear-gradient(145deg, #27ae60, #2ecc71);
+            transform: translateY(-2px);
+            box-shadow: 0 7px 15px rgba(0, 0, 0, 0.4);
+        }
+
+        button:active {
+            transform: translateY(0);
+            box-shadow: 0 3px 5px rgba(0, 0, 0, 0.2);
+        }
+
+        button.restart {
+            background: linear-gradient(145deg, #e74c3c, #c0392b); /* Red gradient */
+        }
+
+        button.restart:hover {
+            background: linear-gradient(145deg, #c0392b, #e74c3c);
+        }
+
+        #game-over-screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.8);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            border-radius: 15px;
+            z-index: 10;
+            font-size: 2em;
+            font-weight: bold;
+            color: #e74c3c; /* Red for game over */
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+            animation: fadeIn 0.5s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        #game-over-screen h2 {
+            margin-bottom: 10px;
+            font-size: 1.5em;
+            color: #ecf0f1;
+        }
+
+        /* Accident Effect */
+        .shake {
+            animation: shake 0.3s cubic-bezier(.36,.07,.19,.97) both;
+            transform: translate3d(0, 0, 0);
+            backface-visibility: hidden;
+            perspective: 1000px;
+        }
+
+        @keyframes shake {
+            10%, 90% { transform: translate3d(-1px, 0, 0); }
+            20%, 80% { transform: translate3d(2px, 0, 0); }
+            30%, 50%, 70% { transform: translate3d(-4px, 0, 0); }
+            40%, 60% { transform: translate3d(4px, 0, 0); }
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+            .game-container {
+                width: 95%;
+                padding: 15px;
+            }
+            h1 {
+                font-size: 2em;
+            }
+            canvas {
+                width: 100%;
+                height: 350px; /* Adjusted height for smaller screens */
+            }
+            .button-group {
+                flex-direction: column;
+                gap: 10px;
+            }
+            button {
+                width: 100%;
+                padding: 10px 20px;
+                font-size: 1em;
+            }
+            #game-over-screen {
+                font-size: 1.5em;
+            }
+            .game-info {
+                font-size: 1em;
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <h1>Mini Racer Pro</h1>
+        <canvas id="gameCanvas"></canvas>
+        <div class="game-info">
+            <div id="scoreDisplay">Score: 0</div>
+            <div id="bestScoreDisplay">Best Score: 0</div>
+            <div id="speedDisplay">Speed: 0 KM/H</div>
+            <div id="timeDisplay">Time: 0s</div>
+        </div>
+        <div id="userIdDisplay" style="font-size: 0.8em; color: #7f8c8d; margin-top: 10px;">User ID: Loading...</div>
+
+        <div class="button-group">
+            <button id="startButton">Start Game</button>
+            <button id="restartButton" class="restart" style="display: none;">Restart Game</button>
+        </div>
+
+        <div id="game-over-screen" style="display: none;">
+            <h2>GAME OVER!</h2>
+            <div id="final-score"></div>
+        </div>
+
+        <div class="instructions">
+            Use Left/Right arrow keys or 'A'/'D' to move horizontally.
+            Use Up/Down arrow keys or 'W'/'S' to move vertically.
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const scoreDisplay = document.getElementById('scoreDisplay');
+        const bestScoreDisplay = document.getElementById('bestScoreDisplay'); // New: Best Score display
+        const speedDisplay = document.getElementById('speedDisplay');
+        const timeDisplay = document.getElementById('timeDisplay');
+        const startButton = document.getElementById('startButton');
+        const restartButton = document.getElementById('restartButton');
+        const gameOverScreen = document.getElementById('game-over-screen');
+        const finalScoreDisplay = document.getElementById('final-score');
+        const gameContainer = document.querySelector('.game-container');
+        const userIdDisplay = document.getElementById('userIdDisplay'); // New: User ID display
+
+        // --- Firebase Variables ---
+        let app;
+        let db;
+        let auth;
+        let userId;
+        let isFirebaseReady = false; // Flag to ensure Firestore ops wait for auth
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+
+        // --- Game Configuration ---
+        const GAME_WIDTH = 400;
+        const GAME_HEIGHT = 500;
+        const PLAYER_CAR_WIDTH = 45;
+        const PLAYER_CAR_HEIGHT = 75;
+        const PLAYER_HORIZONTAL_SPEED = 7;
+        const PLAYER_VERTICAL_SPEED = 5;
+        const OBSTACLE_WIDTH = 55;
+        const OBSTACLE_HEIGHT = 85;
+        let OBSTACLE_INITIAL_SPEED = 3;
+        let OBSTACLE_CURRENT_SPEED = OBSTACLE_INITIAL_SPEED;
+        const OBSTACLE_SPAWN_INTERVAL = 1200; // milliseconds
+        const ROAD_LINE_WIDTH = 8;
+        const ROAD_LINE_LENGTH = 50;
+        const ROAD_LINE_GAP = 70;
+        const ROAD_LANE_WIDTH = GAME_WIDTH / 3; // Three lanes
+        const SPEED_INCREASE_TIME_INTERVAL = 10000; // Increase speed every 10 seconds
+        const SPEED_INCREASE_AMOUNT = 0.5; // Amount to increase obstacle speed
+
+        // --- Game State Variables ---
+        let playerCar = {
+            x: GAME_WIDTH / 2 - PLAYER_CAR_WIDTH / 2,
+            y: GAME_HEIGHT - PLAYER_CAR_HEIGHT - 20,
+            width: PLAYER_CAR_WIDTH,
+            height: PLAYER_CAR_HEIGHT,
+            color: '#3498db', // Blue car (initial)
+            isBroken: false // New: State for broken car
+        };
+
+        let obstacles = [];
+        let score = 0;
+        let bestScore = 0; // New: Best score variable
+        let gameOver = false;
+        let gameRunning = false;
+        let lastObstacleSpawnTime = 0;
+        let animationFrameId;
+        let startTime = 0;
+        let elapsedTime = 0;
+        let lastSpeedIncreaseTime = 0;
+        let collisionOccurred = false;
+
+        // --- Crash Particle Variables ---
+        let crashParticles = [];
+        const PARTICLE_COUNT = 30; // Number of particles
+        const PARTICLE_SIZE = 5;
+        const PARTICLE_SPEED = 3;
+        const PARTICLE_LIFESPAN = 40; // Frames for particles to live
+
+        // Set canvas dimensions
+        canvas.width = GAME_WIDTH;
+        canvas.height = GAME_HEIGHT;
+
+        // --- Helper Functions ---
+
+        /**
+         * Darkens a given hex color by a specified percentage.
+         * @param {string} hex - The hex color string (e.g., '#RRGGBB').
+         * @param {number} percent - The percentage to darken (e.g., 20 for 20%).
+         * @returns {string} The new darkened hex color.
+         */
+        function darkenColor(hex, percent) {
+            let f=parseInt(hex.slice(1),16),t=percent<0?0:255,p=percent<0?percent*-1:percent,R=f>>16,G=(f>>8)&0x00FF,B=f&0x0000FF;
+            return "#"+(0x1000000+(Math.round((t-R)*p/100)+R)*0x10000+(Math.round((t-G)*p/100)+G)*0x100+(Math.round((t-B)*p/100)+B)).toString(16).slice(1);
+        }
+
+        /**
+         * Draws a stylized car shape.
+         * @param {CanvasRenderingContext2D} ctx - The canvas rendering context.
+         * @param {number} x - X coordinate of the car's top-left corner.
+         * @param {number} y - Y coordinate of the car's top-left corner.
+         * @param {number} width - Width of the car.
+         * @param {number} height - Height of the car.
+         * @param {string} color - Base color of the car.
+         * @param {boolean} isBroken - If true, draw a broken version of the car.
+         */
+        function drawCar(ctx, x, y, width, height, color, isBroken = false) {
+            if (isBroken) {
+                // Draw a broken car (e.g., black, deformed, smoke-like)
+                ctx.fillStyle = '#222'; // Dark color for broken parts
+                ctx.beginPath();
+                ctx.moveTo(x + width * 0.1, y + height * 0.2);
+                ctx.lineTo(x + width * 0.9, y + height * 0.1);
+                ctx.lineTo(x + width * 0.8, y + height * 0.9);
+                ctx.lineTo(x + width * 0.2, y + height * 0.8);
+                ctx.closePath();
+                ctx.fill();
+
+                ctx.fillStyle = 'rgba(0,0,0,0.5)'; // Darker smoke effect
+                ctx.fillRect(x + width * 0.3, y + height * 0.1, width * 0.4, height * 0.8);
+                ctx.fillRect(x + width * 0.1, y + height * 0.3, width * 0.8, height * 0.4);
+
+                // Add some shattered lines
+                ctx.strokeStyle = '#555';
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                ctx.moveTo(x + width * 0.2, y + height * 0.3);
+                ctx.lineTo(x + width * 0.7, y + height * 0.7);
+                ctx.moveTo(x + width * 0.8, y + height * 0.2);
+                ctx.lineTo(x + width * 0.3, y + height * 0.8);
+                ctx.stroke();
+                return;
+            }
+
+            // Main body
+            ctx.fillStyle = color;
+            ctx.beginPath();
+            ctx.moveTo(x + width * 0.1, y); // Top-left corner (slight taper)
+            ctx.lineTo(x + width * 0.9, y); // Top-right corner
+            ctx.lineTo(x + width, y + height); // Bottom-right
+            ctx.lineTo(x, y + height); // Bottom-left
+            ctx.closePath();
+            ctx.fill();
+
+            // Cabin/Roof (darker shade)
+            ctx.fillStyle = darkenColor(color, 20);
+            ctx.beginPath();
+            ctx.moveTo(x + width * 0.25, y + height * 0.15);
+            ctx.lineTo(x + width * 0.75, y + height * 0.15);
+            ctx.lineTo(x + width * 0.7, y + height * 0.55);
+            ctx.lineTo(x + width * 0.3, y + height * 0.55);
+            ctx.closePath();
+            ctx.fill();
+
+            // Windshield and back window
+            ctx.fillStyle = '#bdc3c7'; // Light grey for windows
+            ctx.beginPath();
+            ctx.moveTo(x + width * 0.3, y + height * 0.2); // Windshield
+            ctx.lineTo(x + width * 0.7, y + height * 0.2);
+            ctx.lineTo(x + width * 0.65, y + height * 0.45);
+            ctx.lineTo(x + width * 0.35, y + height * 0.45);
+            ctx.closePath();
+            ctx.fill();
+
+            ctx.beginPath();
+            ctx.moveTo(x + width * 0.35, y + height * 0.6); // Back window
+            ctx.lineTo(x + width * 0.65, y + height * 0.6);
+            ctx.lineTo(x + width * 0.7, y + height * 0.85);
+            ctx.lineTo(x + width * 0.3, y + height * 0.85);
+            ctx.closePath();
+            ctx.fill();
+
+            // Headlights (front) / Taillights (back)
+            const lightColor = color === playerCar.color ? '#f1c40f' : '#e74c3c'; // Yellow for player front, red for obstacle back
+            const wheelColor = '#2c3e50'; // Dark for wheels
+
+            // Front lights (player car) / Taillights (obstacle cars)
+            if (color === playerCar.color) {
+                // Headlights
+                ctx.fillStyle = lightColor;
+                ctx.beginPath();
+                ctx.ellipse(x + width * 0.2, y + height * 0.05, width * 0.08, height * 0.03, -Math.PI / 8, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.beginPath();
+                ctx.ellipse(x + width * 0.8, y + height * 0.05, width * 0.08, height * 0.03, Math.PI / 8, 0, Math.PI * 2);
+                ctx.fill();
+            } else {
+                // Taillights
+                ctx.fillStyle = lightColor;
+                ctx.beginPath();
+                ctx.rect(x + width * 0.15, y + height * 0.9, width * 0.15, height * 0.05);
+                ctx.fill();
+                ctx.beginPath();
+                ctx.rect(x + width * 0.7, y + height * 0.9, width * 0.15, height * 0.05);
+                ctx.fill();
+            }
+
+            // Wheels
+            const wheelWidth = width * 0.15;
+            const wheelHeight = height * 0.08;
+            ctx.fillStyle = wheelColor;
+            // Front-left
+            ctx.beginPath();
+            ctx.roundRect(x + width * 0.05, y + height * 0.75, wheelWidth, wheelHeight, 3);
+            ctx.fill();
+            // Front-right
+            ctx.beginPath();
+            ctx.roundRect(x + width * 0.8, y + height * 0.75, wheelWidth, wheelHeight, 3);
+            ctx.fill();
+            // Back-left
+            ctx.beginPath();
+            ctx.roundRect(x + width * 0.05, y + height * 0.08, wheelWidth, wheelHeight, 3);
+            ctx.fill();
+            // Back-right
+            ctx.beginPath();
+            ctx.roundRect(x + width * 0.8, y + height * 0.08, wheelWidth, wheelHeight, 3);
+            ctx.fill();
+        }
+
+        /**
+         * Draws crash particles.
+         */
+        function drawParticles() {
+            crashParticles.forEach(p => {
+                ctx.fillStyle = `rgba(${parseInt(p.color.slice(1,3), 16)}, ${parseInt(p.color.slice(3,5), 16)}, ${parseInt(p.color.slice(5,7), 16)}, ${p.life / PARTICLE_LIFESPAN})`;
+                ctx.fillRect(p.x - p.size / 2, p.y - p.size / 2, p.size, p.size);
+            });
+        }
+
+        /**
+         * Fetches the best score from Firestore.
+         */
+        async function getHighScore() {
+            if (!isFirebaseReady || !userId) {
+                console.log("Firebase not ready or userId not available for high score fetch.");
+                return;
+            }
+            try {
+                // Construct the document reference using __app_id and userId
+                const highScoresRef = doc(db, 'artifacts', appId, 'users', userId, 'highscores', 'racingGameHighScore');
+                const docSnap = await getDoc(highScoresRef);
+                if (docSnap.exists()) {
+                    bestScore = docSnap.data().value || 0;
+                } else {
+                    bestScore = 0; // No high score yet for this user
+                }
+                bestScoreDisplay.textContent = `Best Score: ${bestScore}`;
+            } catch (error) {
+                console.error("Error getting high score:", error);
+            }
+        }
+
+        /**
+         * Sets (updates) the best score in Firestore.
+         * @param {number} newScore - The new score to set.
+         */
+        async function setHighScore(newScore) {
+            if (!isFirebaseReady || !userId) {
+                console.log("Firebase not ready or userId not available for high score set.");
+                return;
+            }
+            try {
+                const highScoresRef = doc(db, 'artifacts', appId, 'users', userId, 'highscores', 'racingGameHighScore');
+                await setDoc(highScoresRef, { value: newScore }, { merge: true }); // Merge to update only the value field
+                bestScore = newScore;
+                bestScoreDisplay.textContent = `Best Score: ${bestScore}`;
+            } catch (error) {
+                console.error("Error setting high score:", error);
+            }
+        }
+
+        /**
+         * Resets all game variables to their initial state.
+         */
+        function resetGame() {
+            playerCar.x = GAME_WIDTH / 2 - PLAYER_CAR_WIDTH / 2;
+            playerCar.y = GAME_HEIGHT - PLAYER_CAR_HEIGHT - 20;
+            playerCar.color = '#3498db'; // Reset player car color
+            playerCar.isBroken = false; // Reset broken state
+            obstacles = [];
+            score = 0;
+            OBSTACLE_CURRENT_SPEED = OBSTACLE_INITIAL_SPEED; // Reset obstacle speed
+            gameOver = false;
+            gameRunning = false;
+            collisionOccurred = false;
+            crashParticles = []; // Clear particles
+            scoreDisplay.textContent = `Score: ${score}`;
+            speedDisplay.textContent = `Speed: 0 KM/H`; // Reset speed display
+            timeDisplay.textContent = `Time: 0s`; // Reset time display
+            gameOverScreen.style.display = 'none';
+            startButton.style.display = 'block';
+            restartButton.style.display = 'none';
+            lastObstacleSpawnTime = 0;
+            startTime = 0;
+            elapsedTime = 0;
+            lastSpeedIncreaseTime = 0;
+            gameContainer.classList.remove('shake'); // Remove shake effect
+
+            // Clear any lingering animation frames
+            if (animationFrameId) {
+                cancelAnimationFrame(animationFrameId);
+            }
+            draw(); // Draw initial state
+        }
+
+        /**
+         * Starts the game loop.
+         */
+        function startGame() {
+            resetGame(); // Ensure a clean start
+            gameRunning = true;
+            startButton.style.display = 'none';
+            restartButton.style.display = 'none'; // Will show only on game over
+            lastObstacleSpawnTime = performance.now(); // Initialize spawn time
+            startTime = performance.now(); // Record start time
+            lastSpeedIncreaseTime = performance.now(); // Initialize speed increase time
+            gameLoop();
+        }
+
+        /**
+         * Ends the game and displays the game over screen.
+         */
+        function endGame() {
+            gameOver = true;
+            gameRunning = false;
+            if (animationFrameId) {
+                cancelAnimationFrame(animationFrameId);
+            }
+            finalScoreDisplay.textContent = `Final Score: ${score}`;
+            gameOverScreen.style.display = 'flex';
+            restartButton.style.display = 'block';
+
+            // Update best score if current score is higher
+            if (score > bestScore) {
+                setHighScore(score);
+            }
+        }
+
+        /**
+         * Draws the road lines, simulating perspective.
+         */
+        function drawRoadLines() {
+            ctx.fillStyle = '#e0e0e0'; // Lighter color for side lines
+
+            // Draw side road lines (static)
+            ctx.fillRect(ROAD_LINE_WIDTH * 0.5, 0, ROAD_LINE_WIDTH, GAME_HEIGHT); // Left edge line
+            ctx.fillRect(GAME_WIDTH - ROAD_LINE_WIDTH * 1.5, 0, ROAD_LINE_WIDTH, GAME_HEIGHT); // Right edge line
+
+            // Draw dashed middle lines
+            ctx.fillStyle = '#f1c40f'; // Yellow lines for the middle
+            const lineOffset = (elapsedTime * 1000 * (OBSTACLE_CURRENT_SPEED / 10)) % (ROAD_LINE_LENGTH + ROAD_LINE_GAP); // Simulate movement
+
+            for (let i = -ROAD_LINE_LENGTH; i < GAME_HEIGHT; i += (ROAD_LINE_LENGTH + ROAD_LINE_GAP)) {
+                // Middle left lane line
+                ctx.fillRect(GAME_WIDTH / 3 - ROAD_LINE_WIDTH / 2, i + lineOffset, ROAD_LINE_WIDTH, ROAD_LINE_LENGTH);
+                // Middle right lane line
+                ctx.fillRect(2 * GAME_WIDTH / 3 - ROAD_LINE_WIDTH / 2, i + lineOffset, ROAD_LINE_WIDTH, ROAD_LINE_LENGTH);
+            }
+        }
+
+        /**
+         * Handles drawing all game elements.
+         */
+        function draw() {
+            ctx.clearRect(0, 0, GAME_WIDTH, GAME_HEIGHT); // Clear canvas
+            ctx.fillStyle = '#607d8b'; // Road background
+            ctx.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
+
+            drawRoadLines();
+            drawCar(ctx, playerCar.x, playerCar.y, playerCar.width, playerCar.height, playerCar.color, playerCar.isBroken);
+            drawObstacles();
+            drawParticles(); // Draw crash particles
+        }
+
+        /**
+         * Draws all obstacles.
+         */
+        function drawObstacles() {
+            obstacles.forEach(obstacle => {
+                drawCar(ctx, obstacle.x, obstacle.y, obstacle.width, obstacle.height, obstacle.color);
+            });
+        }
+
+        /**
+         * Spawns a new obstacle at a random lane.
+         */
+        function spawnObstacle() {
+            const lane = Math.floor(Math.random() * 3); // 0, 1, or 2
+            let obstacleX;
+            // Calculate X based on lanes and ensuring car is centered in its lane
+            const laneCenter = [
+                GAME_WIDTH / 6, // Center of left lane
+                GAME_WIDTH / 2, // Center of middle lane
+                GAME_WIDTH * 5 / 6 // Center of right lane
+            ];
+            obstacleX = laneCenter[lane] - OBSTACLE_WIDTH / 2;
+
+            const colors = ['#e74c3c', '#9b59b6', '#1abc9c', '#f39c12', '#c0392b']; // Various colors
+            const randomColor = colors[Math.floor(Math.random() * colors.length)];
+
+            obstacles.push({
+                x: obstacleX,
+                y: -OBSTACLE_HEIGHT, // Start above the canvas
+                width: OBSTACLE_WIDTH,
+                height: OBSTACLE_HEIGHT,
+                color: randomColor
+            });
+        }
+
+        /**
+         * Updates game logic: obstacle movement, collision, score, time, speed.
+         */
+        function update() {
+            if (!gameRunning) return;
+
+            // Update elapsed time
+            elapsedTime = (performance.now() - startTime) / 1000;
+            timeDisplay.textContent = `Time: ${elapsedTime.toFixed(1)}s`;
+
+            // Update speed display (simple mapping, adjust factor as needed)
+            const kmhSpeed = Math.floor(OBSTACLE_CURRENT_SPEED * 30); // Arbitrary factor for KM/H feel
+            speedDisplay.textContent = `Speed: ${kmhSpeed} KM/H`;
+
+            // Increase obstacle speed by time
+            if (performance.now() - lastSpeedIncreaseTime > SPEED_INCREASE_TIME_INTERVAL) {
+                OBSTACLE_CURRENT_SPEED += SPEED_INCREASE_AMOUNT;
+                lastSpeedIncreaseTime = performance.now();
+            }
+
+            // Move obstacles
+            obstacles.forEach(obstacle => {
+                obstacle.y += OBSTACLE_CURRENT_SPEED;
+            });
+
+            // Remove off-screen obstacles and update score
+            obstacles = obstacles.filter(obstacle => {
+                const isOnScreen = obstacle.y < GAME_HEIGHT;
+                if (!isOnScreen) {
+                    score += 10;
+                    scoreDisplay.textContent = `Score: ${score}`;
+                }
+                return isOnScreen;
+            });
+
+            // Collision detection
+            obstacles.forEach(obstacle => {
+                if (
+                    playerCar.x < obstacle.x + obstacle.width &&
+                    playerCar.x + playerCar.width > obstacle.x &&
+                    playerCar.y < obstacle.y + obstacle.height &&
+                    playerCar.y + playerCar.height > obstacle.y
+                ) {
+                    if (!collisionOccurred) { // Only trigger collision effect once
+                        collisionOccurred = true;
+                        playerCar.isBroken = true; // Set car to broken state
+                        gameContainer.classList.add('shake'); // Add shake effect
+
+                        // Generate particles at collision point
+                        for (let i = 0; i < PARTICLE_COUNT; i++) {
+                            crashParticles.push({
+                                x: playerCar.x + playerCar.width / 2,
+                                y: playerCar.y + playerCar.height / 2,
+                                vx: (Math.random() - 0.5) * PARTICLE_SPEED * 2, // Random horizontal velocity
+                                vy: (Math.random() - 0.5) * PARTICLE_SPEED * 2, // Random vertical velocity
+                                life: PARTICLE_LIFESPAN,
+                                size: Math.random() * PARTICLE_SIZE + 2, // Random size
+                                color: '#c0392b' // Dark red/brown for debris
+                            });
+                        }
+
+                        // End game after a short delay to show effect
+                        setTimeout(() => {
+                            endGame();
+                        }, 500); // Wait for shake animation to finish and particles to spread
+                    }
+                }
+            });
+
+            // Update particles
+            crashParticles.forEach(p => {
+                p.x += p.vx;
+                p.y += p.vy;
+                p.life--;
+            });
+            crashParticles = crashParticles.filter(p => p.life > 0);
+
+
+            // Spawn new obstacles
+            const currentTime = performance.now();
+            if (currentTime - lastObstacleSpawnTime > OBSTACLE_SPAWN_INTERVAL) {
+                spawnObstacle();
+                lastObstacleSpawnTime = currentTime;
+            }
+        }
+
+        /**
+         * Main game loop.
+         */
+        function gameLoop() {
+            if (!gameOver) {
+                update();
+                draw();
+                animationFrameId = requestAnimationFrame(gameLoop);
+            }
+        }
+
+        // --- Event Listeners ---
+
+        // Player movement
+        document.addEventListener('keydown', (e) => {
+            if (!gameRunning || collisionOccurred) return; // Prevent movement after collision
+
+            if (e.key === 'ArrowLeft' || e.key === 'a') {
+                playerCar.x = Math.max(playerCar.x - PLAYER_HORIZONTAL_SPEED * 10, 0);
+            } else if (e.key === 'ArrowRight' || e.key === 'd') {
+                playerCar.x = Math.min(playerCar.x + PLAYER_HORIZONTAL_SPEED * 10, GAME_WIDTH - playerCar.width);
+            } else if (e.key === 'ArrowUp' || e.key === 'w') { // New: Move up
+                playerCar.y = Math.max(playerCar.y - PLAYER_VERTICAL_SPEED * 10, GAME_HEIGHT / 2); // Limit upwards movement to roughly middle of the screen
+            } else if (e.key === 'ArrowDown' || e.key === 's') { // New: Move down
+                playerCar.y = Math.min(playerCar.y + PLAYER_VERTICAL_SPEED * 10, GAME_HEIGHT - playerCar.height);
+            }
+        });
+
+        startButton.addEventListener('click', startGame);
+        restartButton.addEventListener('click', startGame);
+
+        // --- Firebase Initialization ---
+        window.onload = async function() {
+            try {
+                const firebaseConfig = JSON.parse(typeof __firebase_config !== 'undefined' ? __firebase_config : '{}');
+                app = initializeApp(firebaseConfig);
+                db = getFirestore(app);
+                auth = getAuth(app);
+
+                // Authenticate user
+                onAuthStateChanged(auth, async (user) => {
+                    if (user) {
+                        userId = user.uid;
+                        isFirebaseReady = true;
+                        userIdDisplay.textContent = `User ID: ${userId.substring(0, 8)}...`; // Show truncated ID
+                        await getHighScore(); // Fetch high score once authenticated
+                    } else {
+                        // Sign in anonymously if no user is present (and no custom token for initial auth)
+                        if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                            await signInWithCustomToken(auth, __initial_auth_token);
+                        } else {
+                            await signInAnonymously(auth);
+                        }
+                    }
+                    draw(); // Initial draw after Firebase is ready
+                });
+            } catch (error) {
+                console.error("Firebase initialization failed:", error);
+                userIdDisplay.textContent = `User ID: Error`; // Show error if Firebase fails
+                draw(); // Draw game even if Firebase fails
+            }
+        };
+
+    </script>
+</body>
+</html>
